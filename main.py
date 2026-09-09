@@ -2,17 +2,14 @@ import sys
 import os
 import cv2
 import shutil
-import base64
+import ctypes
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QPushButton, QFileDialog, QListWidget, 
                              QListWidgetItem, QLabel, QLineEdit, QSpinBox, 
                              QMessageBox, QAbstractItemView, QDialog, QTableWidget, 
-                             QTableWidgetItem, QMenu)
+                             QTableWidgetItem, QMenu, QStyledItemDelegate, QStyleOptionViewItem)
 from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal
 from PyQt6.QtGui import QIcon, QPixmap, QImage
-
-# --- ÍCONE EMBUTIDO ---
-ICON_B64 = b'AAABAAcAEBAAAAAAIACBAQAAdgAAABgYAAAAACAA7wEAAPcBAAAgIAAAAAAgAHkCAADmAwAAMDAAAAAAIADPAwAAXwYAAEBAAAAAACAA6AQAAC4KAACAgAAAAAAgAAkJAAAWDwAAAAAAAAAAIAA7BQAAHxgAAIlQTkcNChoKAAAADUlIRFIAAAAQAAAAEAgGAAAAH/P/YQAAAUhJREFUeJydk71KA0EUhb8zs8kaDeJvI0HbhFjY2voygp2VpBILCT6BjY/iIwg2QkIKGxttJBiFJO7Otdg1KGw24oGB4XLnnHPPzAgQYAB0h+uM38TkXRQhrmd9F7uvWcEkQJz19qjE14T0gJBkNbPfJJIBhosM53uk0xO6zX7W2OndsrpzxOgFnC8UnyGkUN+G0fMdcetQnD5sUPUDfLRG+ql8pDIYzhsWxkyTVkTsBJYiecCQFhAYSA6zlIrk8lrxIeM73iIIwJUJLVVEraoyEqIys0mARQPNJxAkqc32/3Kw8D4oy+CPcLlSSUxzYQARcTDG3mMh/PwW8yHDgoF87qA9BOuzsuUQDhepdIFjedOBPbLEcxZTp9/EV28IyT4hFdic+JQ9Y1cd8PlxzFX7Pm9W5vv8qUEyFsmkmCCKDWpw2XjKY9AXnx1uZQ+vvGIAAAAASUVORK5CYIKJUE5HDQoaCgAAAA1JSERSAAAAGAAAABgIBgAAAOB3PfgAAAG2SURBVHic7Za9btRAFIW/OzP2ZrWERKLYKG8Q/sR7pKBAi3gAKuiQAIlmlTLi5wlooNxUiIIXoEZIiL8KHiBskyXZeG0firGzFAjZi0uONJIlz5xvfOdorqHWWI6uNJr4+jFE87Fjz0ruvt1mc3sXGFLMDZoyS/CpcDbl+OgNT699i557pTGaeA5uFjz8tEvaf0HoXwAB1nLb1Zr85CfZ7A77V14yljOQ8ejzFvJfCb11suMFmMUFbWSAREgTpJL5ySWeXf3iwERp11nbiOZmCUbArOUgYJaQZwt6644kuQVnRbYhaJW6/OlLDEqBhkuAqYgvupJZ9KwB6tK8kmI12mVftD775gBBGoxeaBewRgADkDi/5tjoe5Aan1hoMkkAzjicFdW2LGauK8CZVohCdxfcf8C/AaxpJlrIqvABIPO0v5//ItWeNUBTqgu9A3OBE8Z0CYDXzI+yqlksEPlqQwucD+RzI/cHAIHRxLO/8537H2/TGzxncC5FJau1TAf5HLLZPZ5cfs9o4qPLWLHpP/iwQzK4gfItygJUNqOYE86D8z84PX3F44vv6qa/nNTlb8tvXr8A+Kmz7f+12VEAAAAASUVORK5CYIKJUE5HDQoaCgAAAA1JSERSAAAAIAAAACAIBgAAAHN6evQAAAJASURBVHic7Zc/TxRBGIefd2Z27wIB/2GvBUqiMX4ELS2MFXwCjUZLRYkmbra7D2BhVApjBz0tFH4BC5TEBCU2JhAT9CActzOvxd0ecAcGbg+MhieZZPPOzvx+OzuTd15oZ1QtiZqOeFESNSSzrj3sOl5KxQMwvjyAXXewWlD5BGgWSGUVCKgKIpr3Spt44Mmnm7j4AeqvEkKMBtlt2n0johiTIe4jvj5JZeRdS6tlIA88nk/pO/mcECDbKKTbgYvBlWF95Q2VS3dyTWFKLWPiebpwg3hgho1fGaqA2t46ICAS6B+KWPtxl8rFVySzzjE93ewOjwhB0QAibvvf6REWFGrVgIaHTOkkY/iGyvj7AcypL9j4DL6uiPRcvYkCghKQ+jCVK4uN45adjEB6veR7I2LYJAZoGCgF/eOAw8Cqbhn4ixwbKGZAm+2oDYgAXjl3OmJ4KAavdHtwO7LTflAFjLC85hvCRhqxozIAgMBaLbSeu6V7AwWFc/7xU3Bs4NjA/2OgVj2sG9De+LpsGRgcytCiaeUAqCrW+IaBRA3phZ+ILGBLAQiHK1wKoN/oi5dAxcBcvg9eEJUMIgHwbCXb3jTVgFCnPGgQXpJe3iSZszsLk4n51/SfvU2tCtkmhZP9dmwM5UGorsxQ/n4LrgVStLM0m1i4j43vEeojqEb5Tbo7mmNFPOIWIXvL5w8VpkfzNKptM6tAs3B89vU83kdQa+3YA2MjhRJY53GLS6TXs2aPsOfy7lJC94xk1sHOj/4NhgHvPQbO1zgAAAAASUVORK5CYIKJUE5HDQoaCgAAAA1JSERSAAAAMAAAADAIBgAAAFcC+YcAAAOWSURBVHic7ZpNiFtVFMd/596Xr0lHB4VWkVIXVbStIghSuumIgksRzIC4cONGBEVKV108s2thRKFrRRBcZNy4ERfCDG5E3FjUQTpUQV0IQkvsJDPv497j4iUzMZOZpjovL4v8Ngk3h/f+//vuO/flnCeMhQo6XuShIQDyP8/aUkujZQ9Dz38iVEO4GoDKfiGjfwhDQ7PpBw5Updqu0f7t8EWO5F6oVBOaxzYHNBia4ocj9xoYDLz0SwNo4NNnQOdRJ/t5PjwUMIqYCOEamM+JbnzCey90aLQsK0tufwP9mb/w0wmq5Q8p1Z9DHaQRqN8TnjtBBWwZ4s46Ued1lp/8ZtjErqL+zF/aOI7qd5Tqx9hup1mMyEHrMDcEj6KUagGQkHSf58rprwdN/NsAa4bto19RWzjPVjtGpDxx0aNQTSnVAlz8O+XkKd49faufpQwA4WpAUzzbD7zI3H3n2WqnUyMeQCQg2UqoLRwnCt5BRAnXLEBmYP2vLN+KvoJ3OvG1Ph6WuKuofzmb8EUHEKAqiDgufF8HzpJGQt/YNCFiSLcVE5wkfvAkyM+EanaFHgkqIPUs2xRww46DKhgb4OQeANZXZNdA5BX2bhTTh4KxO2l0aKlM6cwP45IdndO31u+SmYGimRk4CCH/LTFXA6q9h9gcyc+AQr1imK8Z8vw7mosBI0DqefqhKudO1MD5bCwHgjwO6hUIDD/+GWENYE02lgO5GABA4GYnzb7nNf3kaQCQnvA8KzK5GphEKWm2kRXNzEDRzAwUzcxA0cwMFM3MQNEMVOaMoNNZ1d2DlRGFrXQzRYintDLdQ0DVkxL1R0xWa1fD1bN/g79GUFHEuIMOUwiKJyiDT/7A3dwAoNXwvSuw1vs0nxGUBD99+kE95bqg5gveP7dFuBog/Q5Nc9GhKlTcp3RvbVCZC1BNC1a8i6rHloTodgeXLGdF6EUPO/eAKEsrhuaZTUhfxTlPqRqgmqBZw6AY4XhUU4w1VOctPn6D5Sdu0GKnFTzUZu11Ki/+8CzluY+oHHmYuNNrs2qWo/K20j+HiGBLUK5D3L1NGr/Flcc/pqWWJRnRZh028ea397Nw9G1IX8LrYxgbTO5CCKgD5Ves/ZI0+oDLp67fudHdZzAwDA3utUfwdh7fVdwE8mypBEYi2u46Vx/NUmZDLStyF9lFVbIXLQqmpZYw3PeJYYzZVCFEWF+Z7A53qqE00Tu9cvMPIM9fl3AgIP4AAAAASUVORK5CYIKJUE5HDQoaCgAAAA1JSERSAAAAQAAAAEAIBgAAAKppcd4AAASvSURBVHic7ZtPaBxVHMc/v/dmd3ZjE5IKrW1FEG1L/2BBhB7sRRGlIHjQzVkQPYgXK5RW0E2gEFCKoHj2JrLxItSDCs3Ng/TQQ5sqCopF1Frb4DbJ/pn3fh5mkuymSZPGpG8T5wN72Lf7Zn7f77z5zbyZ94P/OXL3XVTQ9Q9kXRAA2YjoVKippaZ2Aza+vlTUUp2IUF3VwV35T5WaZXzYzX+vqeU3+pm6CE27hhG0AcT9CoMwUG/y1kOz8+0VtYyLW77jSgZUJyJGn0qoXirS7jsO+gLoUdTtQt2K3e8pYgDqmOgCmHM03JecffQaVTWMoMjSp8byClQFEeXkleeIimcpxIdAwDXBJ3fsGgZNTYhiEAvtxjW8O8PY3o/SnzM9i4iW3FalZgHPqe+rRPEIItD4x6UJRg1C7yVCAVSUpKWAYqMdlPo/5O2fjuFbrwM3ljLhdgPmhv3JyyMM7q5S/92hCCJ2YU/03gAAEGQ+MJcoMzcT+ncOc+vadoRnqWAA192lk7mkceryMxTu+5qkkeB9hEgvyl0dqi36theZvj7Ce4dHFyfGDmHZ9f3E1RLF6YsUy/toTXvEmABhrx+qiljFRg5JjnBm/xWqahgVD7AgroJBRCnPPk2pfx+tGbfpxQOICOo8xb4Cib6Stc7r6jQgJXEvZYmi19Lcf8HQboC653ntQoFR3NzYTw1QFYbxvPltGZEnSVpCpzmbHjEkDcXGD3P/wF4Q5V010CVSlIGBMuhOfBt6M8+vDSHNBVGxiNHdAEym+rqPctMrIslW0t6FKtld3DxLDfMtqj7Dd+vbQuf52sgNCB1AaHIDQgcQmtyA0AGEJjcgdAChyQ0IHUBocgNCBxCa3IDQAYQmN+D2pg1Zb987mKhL36I1QkZgE9QErBkB77r0dRsQTbVRvZUtPd9aCIJPHJLUO5tTpSJKRS3vH6ujXCCKFcEHCXQjUFVsLCSNPygMXQKgxqKlsgezFzRGvkCM9MQj2/XDUSgpyHlG98xQUzu3bH7BgBEcqCCz52jWb2JjQbeMC4L3guETAMYXflgwQESpYBh7/C+8e4d4mwESNjvq25SHLI36OGMHJu6wXD6jppZhcZya/JxtO1+k/mcLoRD+Tf4aUN+mNFigNfMzjeYTDByaWlw/dHu6r+DTkrPkVWZvfkXfUBFEUE1Q9fT6KnLFoyR47ykPFUhaP5LMDvPB4RsAi0tmlj6qnbU1p38YQaLTxH1F2rOQNMmM6D0EwRaFQhm8A9f+jKnrb/Dx0b87iyS6uyzHXOGhiHJ68jCm+DKqx1G/n0LZov6O3e8tmp6hrg3qf0XseTyfMvbINwDLiYdVFU52JI2KWvb/sg+JHqAxBVHQd6vdRCVo+1vEpcuM7pkBWKlmcPVU1VCd6CG1K1BTm5X+rchdjmEVqshcsUHvMQ7jFb/lJ3Tryb/Kya6S6SiKjQAAAABJRU5ErkJggolQTkcNChoKAAAADUlIRFIAAACAAAAAgAgGAAAAwz5hywAACNBJREFUeJztnWuMXGUZgJ/3O+fMZW/d3ZZKDfqjPwQq+gcSEy6BmhBD4hr/TPESSQjpkoAJIqnECxlGYpEAwcRoYhPiP5WdgAapCBhpJdiWdBOEXvAHlWCUina3nb3M7Zzz+mN6AdKdndlLd7ff+/ycOZnv5LzP+37v982ZOWAYhmEYhmF4h1yYYfQCjXOxIbrSZ7BwVIXRgxFFDVf6VNY0owcjCmPBciXREn+oCqPjIbuuaX7o5eKhPsg4JiaA4aUd8mIklyiXXSHcI5UPvV7UkCNlpbwtWaqhlkgAFYoElCQ++1JRN1A/uh1x/Wi6HVwG0qUZ7qJHUsK8I559ldzgAWYnXyOvr1C6arr1vgpFhJIs+oIuXoDCWHDWyG+/tYGcbEf1RoLsdYSZPlwAtSlgDU9nFxwBTSHKQdQD1ZOQNt8nO/gkaW0vD21+AWhNDx+ttt2PtAhufDlk79YYCgHf3fkAJN8kP7ieuA7NGqRpjKCohheq3by4kBTVFJEIF0Kuv3VdXfACjanHeXjLSxSLjgcfVGRhDePCw1JUR0lSvvPGzeSGdpDJ38zMCUiTGBEB3KI+3/gIqigJqCM/6KhXEiR6iOifP6K0NaagAWXpujdYQIA+MP/84J0vQvo7giigVmkiEoJY0Jcb1QQRYeBSR+X4buqTt/HEtRNnk7ILugyWCsU9Ae/1C+v7nybKj9CspqSxIi7o7rOMxaEATaJ8BDJBrfINHv3sH7qtBK6rMYsElLbGDOaepmdohMZ0Qpo4C/5KIIBENKoJaTxMbuBZ7j90PWVJuPHljvdeOhegoK1l3n2vj5BfN8LMRBNwVvFXGJGAuB7jgoAgs5OihtwEnW4cdSbAmbJy/1vX0zP0DI1qDKnN96sFcSG1SkK27waqR55pNYXljmLbwUEqUIb73utF2IlzIWmMBX+VIS6geiom3z/CjkNforwtaW0ht2d+AUbHQ8rbEsKTO+i75IZz3b6x+lBHs5ESBL/m3kPDrQ269lPBPFmsAgL3vX4JmexRCAbRWCz7VzVNcutCqqd+yLE3H2Jos2u3W9i+AoyOh4ASZb5Gfv0wmiQW/NWOhjRnBEnv5v2CtII/dxVoL8DksZRRjRC5hbgGaHfLRmMFECFNEqLeAT53dCsAhbnj3CagKpS3JfT/bQjl8zRn5zneWDWopmR6Mji5BVVhaHwBArTKP0SZ28kPCUrTyv9aQUOqJwH9Oncf7m03DcyT0Sogg4gE9nXuWkNBXA+5MNfuqDkE0FbzsOOtPuAOahXAbu1aO4iQpk1y63rJpNuBcxX9I7SvALVAQPOW/WsUcQK6kArwIew+rjVN+6+Hrav3HBPAc0wAzzEBPMcE8BwTwHNMAM8xATzHBPAcE8BzvBZAsP+x81oATRRN1GsJvBZgw0DIpsEITf395ZN3v/cTWpm/aTDiW9cNcfS/Df4zHfP8m9MEWUeifsngZwVQyEXCuydj9r9bZVN/CKpeNgTeVYAzNGK4YmOG4Z6A5/8+DQ7Us+wHXysAkAnhlX9U+cmrk1y5MQuplwXAvwqgAKHwzmSTf1dimony1BsVyDoS/wqAfwKcQRXqzda834j9nP/B4ykAOBd0T4MPvgtgmAC+YwJ4jgngOSaA55gAnmMCeI4J4DkmgOeYAJ5jAniOCeA5JoDnmACeYwJ4jgngOSaA55gAnmMCeI4J4DkmgOeYAJ5jAniOCeA5JoDnmACeYwJ4jgngOSaA55gAnmMCeI4J4DkmgOeYAJ5jAniOCeA5JoDnmACeYwJ4jgngOSaA55gAnmMCeI4J4DkmgOeYAJ5jAniOCeA5JoDnmACeYwJ4jgngOSaA55gAnmMCeI4J4DkmgOeYAJ5jAniOCeA5JoDnmACeYwJ4jgngOSaA53QiQLrsZ2EsEwrzxK+9APVAQHrx8G/U1z4KEgDS2+6oOQQQpaiObFID/RNRDhCrBGsGVSRwNKaroH8GYPLYeeM3dwU4cjjkp5+qAwfI9AIky3CmxnIhBDRmA95O9wBQLnQpAEdaAU/1NepTTTz+a/k1SEqYB3F7uWwgoDAWzHXg3AKcMebAlpdozE7gQoc1A2sESQmzCcJunvhklaHNDuS8sWtTAUQZPRixsawE7lfkBhQkXq5TNpYKVUQiZicSZjK/AWDX1XPGrf0qYPLqlPK2hFT/SFwVUNs3WP2kRD0Kup/a5olW+T9/9sN8ApQloTAW8OMtL1Kf3ktuMECxKrCqEXBO0OABdkkTCm2P7iCjC6AquOgBkuY0zqn1AqsVTYjyjurkszxy+V8ojAWUpe3qbX4BypJw53jIw5e/Qv3UY/R/LAKrAqsO1ZQwFxDXq0wOf5Vi0VE+PG+idjan77o6pvhySHLJY0wdf44oH4LavsCqQZUgTIAZ4sat/OLjVY58WqA07+Zdh02dKKU9KY9vmuHE9K3EjSpBJkBTqwQrjgLU6NsY0Zh9lEc/8xx3joeUt3WUoN09MK2gAVtQakdvIco9SxA5alMxIrZJtBJoqohTBi51VI7vppJ8hbhWby375u78P0h3y7ozDcUjW3YTT38B1ZfoGQzRNPXywbsriRIT5QUkZep/JfYd/zI/v2q6m+DDQh+ZWNDT3WUh4Ps7f0uQHSGuQxo3UQ0R8fhRjMuKopqCOjI9gjJBs3obj2zZTVEdJbSb4MNinpk5pgGHUUqS8r23RwjcLwmz62nMQNJUlATh9B60CbFATgdTU1QUJyFRT+ty1qd+z9S/budnN59g9GDErmuaCxlgCQKjAqLc+9dhskP3INyFCzeQWwfVU60tgzSOke7M9B5VEIkQB1EeXABxo4Jz+4iTJ9i5+QWA1lq/s4bvfCxNZn7wJO461MdA5lqyfTdRP3kHuB7y6/oQR0toKwbzc/pmjtkTEGQrJPX9aLqH7CeepNT//uljTl/IxSXW0kVDVXhwT0Bp67mlYfFQH1Nhjky6HRdmsFVjh7iU3KCjNrGPTVfu5x6pnHtPoPDUorJ+mVGhMBZQVFsaLiWjByNUl7x8LnM9VkGBO8dNhoUweSxt3ZchcLYhNAzDMAzDMIxF8n8zAQ6r3cqUsQAAAABJRU5ErkJggolQTkcNChoKAAAADUlIRFIAAAEAAAABAAgGAAAAXHKoZgAABQJJREFUeJzt2bGKHlUAhuGzqyYBUSshqNiJBjGNYGNj5S3YWtnbpbaKnXZi7x3YCWJaayEIYlBsVLBLxICsVSCShCS7M3Pmz/s8N5Czm/9758y/YwAAAAAAAAAAAAAAAAAAAAB7czT7AIu5cv1k9hGIuXrp4PdzuD+AwbM3BxiEwzqw0XMoDiQG+z+k0XPodhyD3R7M8Hni7DAEuzuQ4fPE21EIjmcf4H+Mn4Idfc73UaId/UJgU5NvA/NvAMZP2eTP/9wAGD9M3cGc64fhw/1t/Eqw/Q3A+OHBNt7HtgEwfni4DXeyXQCMHx7dRnuZ/1cAYJptAuDpD49vg92sHwDjh9NbeT/rBsD44exW3JHvACBsvQB4+sNyVtrTOgEwfljeCrvyCgBhywfA0x/Ws/C+3AAgbNkAePrD+hbcmRsAhAkAhC0XANd/2M5Ce3MDgDABgLBlAuD6D9tbYHduABAmABAmABB29gB4/4d5zrg/NwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIEwAIe3r2AZjj1ievj+9/+3scjTGeO388Pv76j3Htxq3Zx2JjAhB1+9+T8d6Xv44xxnjr4vnx1Qcvjcuf35h8KrbmFYDxw+//jJef9ywoEgDG+689O7792fW/SPajzj11NL776NXxzPHReOPFc+PNz1z/i9wAou58B/DuF7+MT6/9NT58+4XZR2ICAWB889PN8c4rF2YfgwkEgPHjn7fH5YsXxvHR7JOwtbP/l1+5frLAOYDTunrp1Dt2A4AwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYAwAYCwswfg6qWjBc4BnMYZ9+cGAGECAGECAGHLBMD3ALC9BXbnBgBhAgBhywXAawBsZ6G9uQFAmABA2LIB8BoA61twZ24AELZ8ANwCYD0L78sNAMLWCYBbACxvhV2tdwMQAVjOSnvyCgBh6wbALQDObsUdrX8DEAE4vZX3s80rgAjA49tgN74DgLDtAuAWAI9uo71sewMQAXi4DXey/SuACMCDbbyPuWO8cv1k6r8PezHpwTj3S0C3AZi6g/l/BRAByiZ//vc1Pq8EVOzkwTf/BnC3nfxSYFU7+pzv5iD3cBvgSbOj4d+xuwPdQwg4dDsc/h27Pdh9iQGHYsejv9tBHPK+xIC9OZDR3+3gDvxAgsDWDnDwAAAAAAAAAAAAAAAAAADAwfgPDX66vo9oUKcAAAAASUVORK5CYII='
 
 STYLE_SHEET = """
 QMainWindow {
@@ -93,10 +90,22 @@ QHeaderView::section {
 IMG_EXT = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif']
 VID_EXT = ['.mp4', '.avi', '.mov', '.mkv', '.wmv']
 
-def create_icon_if_needed():
-    if not os.path.exists("icon.ico"):
-        with open("icon.ico", "wb") as f:
-            f.write(base64.b64decode(ICON_B64))
+def resource_path(relative_path):
+    """ Retorna o caminho absoluto para o recurso, compatível com o PyInstaller (_MEIPASS) """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+class IconTextDelegate(QStyledItemDelegate):
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        try:
+            option.decorationPosition = QStyleOptionViewItem.Position.Top
+            option.displayAlignment = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
+        except AttributeError:
+            pass
 
 class ThumbnailWorker(QThread):
     thumb_ready = pyqtSignal(str, QIcon)
@@ -128,7 +137,6 @@ class ThumbnailWorker(QThread):
                 pass 
             self.thumb_ready.emit(path, icon)
 
-
 class DraggableListWidget(QListWidget):
     files_dropped = pyqtSignal(list)
     order_updated = pyqtSignal()
@@ -138,24 +146,21 @@ class DraggableListWidget(QListWidget):
         super().__init__(parent)
         self.setAcceptDrops(True)
         
-        # 1. Modo Ícone para garantir texto embaixo (comportamento nativo do Windows/Qt)
-        self.setViewMode(QListWidget.ViewMode.IconMode)
-        
-        # 2. Impedir movimento livre, forçando a grade (Static)
-        self.setMovement(QListWidget.Movement.Static)
-        
-        # 3. Habilita o drag-and-drop nativo de reordenação real da lista (InternalMove)
-        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-        
+        self.setViewMode(QListWidget.ViewMode.ListMode)
+        self.setFlow(QListWidget.Flow.LeftToRight)       
+        self.setWrapping(True)                           
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setWordWrap(True)
+        
+        self.setItemDelegate(IconTextDelegate(self))
+        
         self.setSpacing(10)
         self.setIconSize(QSize(120, 120))
-        self.setGridSize(QSize(150, 180)) # Espaço extra vertical para o texto
+        self.setGridSize(QSize(150, 180))
         
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
-        # Menu de contexto
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
 
@@ -204,8 +209,6 @@ class DraggableListWidget(QListWidget):
             self.files_dropped.emit(paths)
             event.acceptProposedAction()
         else:
-            # Em modo IconMode + Static + InternalMove, o Qt lida sozinho 
-            # com a reordenação visual e de índices perfeitamente.
             super().dropEvent(event)
             self.order_updated.emit()
 
@@ -248,8 +251,11 @@ class MainWindow(QMainWindow):
         self.resize(950, 650)
         
         self.setStyleSheet(STYLE_SHEET)
-        create_icon_if_needed()
-        self.setWindowIcon(QIcon("icon.ico"))
+        
+        # Carrega o ícone pelo caminho absoluto, seja no dev ou no EXE compilado
+        icon_path = resource_path("icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
         
         self.loaded_files = {} 
         self.worker = None
@@ -438,9 +444,17 @@ class MainWindow(QMainWindow):
         
         self.clear_list()
 
-
 if __name__ == '__main__':
+    # Diz ao Windows que este é um app único (desanexa do python.exe padrão)
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('fornecedor.renomeadorpro.1.0')
+    
     app = QApplication(sys.argv)
+    
+    # Aplica o ícone global na aplicação
+    icon_path = resource_path("icon.ico")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+        
     app.setStyle("Fusion")
     
     window = MainWindow()
