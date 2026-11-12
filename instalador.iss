@@ -1,6 +1,6 @@
 [Setup]
 AppName=Renomeador Pro
-AppVersion=1.0
+AppVersion=1.1
 AppPublisher=Fornecedor TI
 DefaultDirName={autopf}\Renomeador Pro
 DefaultGroupName=Renomeador Pro
